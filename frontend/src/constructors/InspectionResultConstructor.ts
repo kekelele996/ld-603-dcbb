@@ -4,11 +4,15 @@ export const createDefaultInspectionResult = (overrides: Partial<InspectionResul
   id: 1 as never,
   task_id: 1 as never,
   device_id: 1 as never,
-  item_code: "item code 1" as never,
-  result_status: "IN_PROGRESS" as never,
-  measured_value: "measured value 1" as never,
+  item_code: "PRESSURE" as never,
+  result_status: "SUBMITTED" as never,
+  measured_value: "0.35MPa" as never,
   photo_url: "/mock/photo_url-1.png" as never,
-  note: "note 1" as never,
+  note: "" as never,
+  building_id: 1,
+  floor: "1F",
+  location_desc: "1F 东门内消火栓",
+  superseded: false,
   ...overrides
 });
 

@@ -57,6 +57,21 @@ backend/src/routes, controllers, services, models, repositories, middlewares, co
 - DeviceType: constants/DeviceType、types/DeviceType、constructors、logTemplates、errorMessages、筛选器、展示组件/控制器均有引用。
 - InspectionStatus: constants/InspectionStatus、types/InspectionStatus、constructors、logTemplates、errorMessages、筛选器、展示组件/控制器均有引用。
 - HazardSeverity: constants/HazardSeverity、types/HazardSeverity、constructors、logTemplates、errorMessages、筛选器、展示组件/控制器均有引用。
+- LocationResolution（设备换位差异处理状态 NONE/PENDING/KEEP_ORIGINAL/REINSPECT_NEW/SUPERSEDED）:
+  - 后端：`backend/src/constants/location_resolution.py`、`models/inspection_task.py`、`repositories/inspection_task_repository.py`、`services/fire_device_service.py`、`services/inspection_task_service.py`、`services/inspection_result_service.py`、`constructors/inspection_task_factory.py`、`seed.py`、`database/init.sql`。
+  - 前端：`frontend/src/constants/LocationResolution.ts`、`types/InspectionTask.ts`、`mocks/seedData.ts`、`mocks/mockEngine.ts`、`utils/formatters.ts`、`components/common/DeviceLocationCell.tsx`、`pages/TasksPage.tsx`、`pages/DevicesPage.tsx`、`hooks/useLocationResolution.ts`。
+- LocationEventType（换位处理时间线动作）:
+  - 后端：`backend/src/constants/location_event_type.py`、`models/location_event.py`、`constructors/location_event_factory.py`、`repositories/location_event_repository.py`、`services/location_event_service.py`、`controllers/location_event_controller.py`、`routes/location_event_routes.py`。
+  - 前端：`frontend/src/constants/LocationEventType.ts`、`types/LocationEvent.ts`、`constructors/LocationEventConstructor.ts`、`api/LocationEvent.ts`、`stores/LocationEventStore.ts`、`components/common/TimelineList.tsx`。
+- 换位相关错误码（LOCATION_CONFLICT / TASK_NOT_PENDING / ENTITY_NOT_FOUND）: 后端 `constants/error_codes.py` + `constants/error_messages.py` + `utils/service_error.py`，前端 `constants/errorCodes.ts` + `constants/errorMessages.ts`，由 service 抛出、controller/页面分别包装提示。
+
+## 设备换位处理流程
+
+1. **任务下发锁定位置**：任务保存 `device_id` 与楼栋/楼层/位置快照（`snapshot_*`）；结果提交时按任务快照写入 `building_id/floor/location_desc`，旧记录能直接看出检查的是哪一处。
+2. **管理员换位**：`PATCH /api/fire-device/{id}/relocation`。`PLANNED` 任务快照自动迁移到新位置；`IN_PROGRESS/SUBMITTED` 任务保留旧位置并置 `location_resolution=PENDING`；`REVIEWED/OVERDUE` 只写时间线留痕。
+3. **巡检员提交**：`POST /api/inspection-result/submit` 按任务位置校验，位置不一致返回 `409 LOCATION_CONFLICT`，结果不会写到新位置。
+4. **主管裁决**：`POST /api/inspection-task/{id}/location-resolution`，`KEEP_ORIGINAL` 确认原位置有效（台账挂旧位置），`REINSPECT_NEW` 旧结果作废、任务快照切到新位置；巡检员在新位置重检后状态闭环为 `SUPERSEDED`。
+5. **处理经过可回溯**：所有动作写入 `location_event`（`GET /api/location-event?device_id=`），前端「位置处理经过」时间线持久展示，重开页面仍可见。
 
 ## 为什么会牵一发动全身
 
