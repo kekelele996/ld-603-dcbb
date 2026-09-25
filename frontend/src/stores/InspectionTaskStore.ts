@@ -1,8 +1,21 @@
 import { create } from "zustand";
-import { listInspectionTask } from "../api/InspectionTask";
+import { dispatchInspectionTask, listInspectionTask, resolveLocationConflict } from "../api/InspectionTask";
 import type { InspectionTask } from "../types/InspectionTask";
+import type { DispatchTaskPayload } from "../types/locationPayloads";
 
-type State = { rows: InspectionTask[]; loading: boolean; load: () => Promise<void> };
+type ResolvePayload = {
+  resolution: "KEEP_OLD" | "REINSPECT_NEW";
+  note?: string;
+  operator_role?: string;
+};
+
+type State = {
+  rows: InspectionTask[];
+  loading: boolean;
+  load: () => Promise<void>;
+  dispatch: (payload: DispatchTaskPayload) => Promise<void>;
+  resolveConflict: (taskId: number, payload: ResolvePayload) => Promise<void>;
+};
 
 export const useInspectionTaskStore = create<State>((set) => ({
   rows: [],
@@ -10,5 +23,13 @@ export const useInspectionTaskStore = create<State>((set) => ({
   async load() {
     set({ loading: true });
     set({ rows: await listInspectionTask(), loading: false });
+  },
+  async dispatch(payload) {
+    await dispatchInspectionTask(payload);
+    set({ rows: await listInspectionTask() });
+  },
+  async resolveConflict(taskId, payload) {
+    await resolveLocationConflict(taskId, payload);
+    set({ rows: await listInspectionTask() });
   }
 }));

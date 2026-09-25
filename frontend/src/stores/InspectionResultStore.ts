@@ -1,8 +1,14 @@
 import { create } from "zustand";
-import { listInspectionResult } from "../api/InspectionResult";
+import { listInspectionResult, submitInspectionResult } from "../api/InspectionResult";
 import type { InspectionResult } from "../types/InspectionResult";
+import type { SubmitResultPayload } from "../types/locationPayloads";
 
-type State = { rows: InspectionResult[]; loading: boolean; load: () => Promise<void> };
+type State = {
+  rows: InspectionResult[];
+  loading: boolean;
+  load: () => Promise<void>;
+  submit: (payload: SubmitResultPayload) => Promise<InspectionResult>;
+};
 
 export const useInspectionResultStore = create<State>((set) => ({
   rows: [],
@@ -10,5 +16,10 @@ export const useInspectionResultStore = create<State>((set) => ({
   async load() {
     set({ loading: true });
     set({ rows: await listInspectionResult(), loading: false });
+  },
+  async submit(payload) {
+    const saved = await submitInspectionResult(payload);
+    set({ rows: await listInspectionResult() });
+    return saved;
   }
 }));

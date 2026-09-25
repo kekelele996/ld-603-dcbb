@@ -8,6 +8,7 @@ build/
 .vscode/
 coverage/
 __pycache__/
+.venv/
 .pytest_cache/
 target/
 vendor/
